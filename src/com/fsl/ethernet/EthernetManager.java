@@ -17,6 +17,7 @@
 package com.fsl.ethernet;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Iterator;
 import android.annotation.SdkConstant;
@@ -32,6 +33,7 @@ import android.content.ContentResolver;
 import android.os.INetworkManagementService;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
+import android.net.RouteInfo;
 import android.net.NetworkUtils;
 import android.net.LinkAddress;
 import android.net.NetworkInfo;
@@ -228,6 +230,7 @@ public class EthernetManager {
                 int prefixLength = NetworkUtils.netmaskIntToPrefixLength(netmask);
                 LinkAddress ipAddr = new LinkAddress(info.getIpAddress()+"/"+ Integer.toString(prefixLength));
                 InetAddress gwAddr = InetAddress.getByName(info.getGateway());
+                Log.e(TAG, "zengjf Gateway:" + gwAddr.getAddress()[0] + "." + gwAddr.getAddress()[1] + "." + gwAddr.getAddress()[2] + "." + gwAddr.getAddress()[3]);
                 StaticIpConfiguration config = new StaticIpConfiguration();
                 config.ipAddress = ipAddr;
                 config.gateway = gwAddr;
@@ -272,6 +275,41 @@ public class EthernetManager {
         }
         if (ip != "[]" )
             infotemp.setIpAddress(ip.substring(2, ip.length()-1));
+
+        // get netmask
+        try {
+			Collection<LinkAddress> linkAddressCollection = mConnMgr.getLinkProperties(ConnectivityManager.TYPE_ETHERNET).getLinkAddresses();
+			int netmask = 0;
+			if (linkAddressCollection != null && linkAddressCollection.size() > 0) {
+				for (LinkAddress linkAddress : linkAddressCollection) {
+					netmask = NetworkUtils.prefixLengthToNetmaskInt(linkAddress.getNetworkPrefixLength());
+					//Log.d(TAG, "check netmask : " + (netmask & 0xff) + "." + ((netmask >> 8) & 0xff) + "." + ((netmask >> 16) & 0xff)+ "." + ((netmask >> 24) & 0xff));
+					//Log.d(TAG, "check netmask : " + ((netmask >> 24) & 0xff) + "." + ((netmask >> 16) & 0xff)+ "." + ((netmask >> 8) & 0xff) + "." + (netmask & 0xff));
+					infotemp.setNetMask((netmask & 0xff) + "." + ((netmask >> 8) & 0xff) + "." + ((netmask >> 16) & 0xff)+ "." + ((netmask >> 24) & 0xff));
+					break;
+				}
+			}
+        } catch (Exception err) {
+            Log.w(TAG, "get NetMask Info error:" + err.toString());
+        }
+        
+        // get gateway
+        try {
+        	RouteInfo[] routeinfos = mNMService.getRoutes(DevName[0]);
+        	for (int i = 0; i < routeinfos.length; i++) {
+        	    Log.d(TAG,"Route info: " + routeinfos[i]);
+        	    byte[] route = routeinfos[i].getGateway().getAddress();
+        		// Log.d(TAG, "check route : " + ((route >> 24) & 0xff) + "." + ((route >> 16) & 0xff)+ "." + ((route >> 8) & 0xff) + "." + (route & 0xff));
+        		Log.d(TAG, "check route : " + (route[0]) + "." + (route[1]) + "." + (route[2])+ "." + (route[3]));
+        		String gateway = (route[0]) + "." + (route[1]) + "." + (route[2])+ "." + (route[3]);
+        		if (!gateway.equals("0.0.0.0")) {
+        			infotemp.setGateway(gateway);
+        			break;
+				}
+        	}
+        } catch (Exception re){
+            Log.e(TAG,"get Routes failed: " + re);
+        }
 
         // get dns address
         String dns = " ";

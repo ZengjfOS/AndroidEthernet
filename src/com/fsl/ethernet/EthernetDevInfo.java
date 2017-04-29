@@ -25,11 +25,11 @@ public class EthernetDevInfo {
     /**
      * The ethernet interface is configured by dhcp
      */
-    public static final String ETHERNET_CONN_MODE_DHCP= "dhcp";
+    public static final String ETHERNET_CONN_MODE_DHCP= "DHCP";
     /**
      * The ethernet interface is configured manually
      */
-    public static final String ETHERNET_CONN_MODE_MANUAL = "manual";
+    public static final String ETHERNET_CONN_MODE_MANUAL = "Static IP";
 
     private String dev_name;
     private String ipaddr;

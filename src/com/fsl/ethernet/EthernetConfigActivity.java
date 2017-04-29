@@ -1,34 +1,23 @@
-/*
- * Copyright (C) 2013-2015 Freescale Semiconductor, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.fsl.ethernet;
 
+import android.os.Bundle;
+import android.app.Activity;
+import android.view.Menu;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.util.Log;
-import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.Spinner;
@@ -40,16 +29,12 @@ import android.widget.CompoundButton;
 import android.widget.CheckBox;
 import android.widget.Toast;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-/**
- * Created by B38613 on 13-8-5.
- */
-public class EthernetConfigDialog extends AlertDialog implements
-        DialogInterface.OnClickListener, AdapterView.OnItemSelectedListener, View.OnClickListener {
+
+public class EthernetConfigActivity extends Activity implements AdapterView.OnItemSelectedListener, OnClickListener {
+
     private final String TAG = "EtherenetSettings";
     private static final boolean localLOGV = true;
-    private Context mContext;
     private EthernetEnabler mEthEnabler;
-    private View mView;
     private Spinner mDevList;
     private TextView mDevs;
     private RadioButton mConTypeDhcp;
@@ -59,28 +44,30 @@ public class EthernetConfigDialog extends AlertDialog implements
     private EditText mMask;
     private EditText mGateway;
     private LinearLayout ip_dns_setting;
-    private static String Mode_dhcp = "dhcp";
+    // private static String Mode_dhcp = "dhcp";
+    private static String Mode_dhcp = EthernetDevInfo.ETHERNET_CONN_MODE_DHCP;
     private Handler configHandler = new Handler();
+    
+    private Button mconfirm;
 
-    public EthernetConfigDialog(Context context, EthernetEnabler Enabler) {
-        super(context);
-        mContext = context;
-        mEthEnabler = Enabler;
-        buildDialogContent(context);
-    }
-    public int buildDialogContent(Context context) {
-        this.setTitle(R.string.eth_config_title);
-        this.setView(mView = getLayoutInflater().inflate(R.layout.eth_configure, null));
-        mDevs = (TextView) mView.findViewById(R.id.eth_dev_list_text);
-        mDevList = (Spinner) mView.findViewById(R.id.eth_dev_spinner);
-        mConTypeDhcp = (RadioButton) mView.findViewById(R.id.dhcp_radio);
-        mConTypeManual = (RadioButton) mView.findViewById(R.id.manual_radio);
-        mIpaddr = (EditText)mView.findViewById(R.id.ipaddr_edit);
-        mDns = (EditText)mView.findViewById(R.id.eth_dns_edit);
-        mMask = (EditText)mView.findViewById(R.id.eth_netmask_edit);
-        mGateway = (EditText)mView.findViewById(R.id.eth_gateway_edit);
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_ethernet_config);
+		
+		mEthEnabler = ((EthernetApp)getApplication()).getmEthEnabler();
 
-        ip_dns_setting = (LinearLayout)mView.findViewById(R.id.ip_dns_setting);
+        mDevs = (TextView) this.findViewById(R.id.eth_dev_list_text);
+        mDevList = (Spinner) this.findViewById(R.id.eth_dev_spinner);
+        mConTypeDhcp = (RadioButton) this.findViewById(R.id.dhcp_radio);
+        mConTypeManual = (RadioButton) this.findViewById(R.id.manual_radio);
+        mIpaddr = (EditText)this.findViewById(R.id.ipaddr_edit);
+        mDns = (EditText)this.findViewById(R.id.eth_dns_edit);
+        mMask = (EditText)this.findViewById(R.id.eth_netmask_edit);
+        mGateway = (EditText)this.findViewById(R.id.eth_gateway_edit);
+        mconfirm = (Button)this.findViewById(R.id.confirm_setings);
+        
+        ip_dns_setting = (LinearLayout)this.findViewById(R.id.ip_dns_setting);
 
         if (mEthEnabler.getManager().isConfigured()) {
             EthernetDevInfo info = mEthEnabler.getManager().getSavedConfig();
@@ -113,17 +100,17 @@ public class EthernetConfigDialog extends AlertDialog implements
             }
         });
 
-        this.setInverseBackgroundForced(true);
-        this.setButton(BUTTON_POSITIVE, context.getText(R.string.menu_save), this);
-        this.setButton(BUTTON_NEGATIVE, context.getText(R.string.menu_cancel), this);
         String[] Devs = mEthEnabler.getManager().getDeviceNameList();
         if (Devs != null) {
             if (localLOGV)
                 Log.d(TAG, "found device: " + Devs[0]);
             updateDevNameList(Devs);
         }
-        return 0;
-    }
+        
+        mconfirm.setOnClickListener(this);
+        
+        
+	}
 
     public static boolean isIpv4(String ipAddress) {
         String ip = "^(1\\d{2}|2[0-4]\\d|25[0-5]|[1-9]\\d|[1-9])\\."
@@ -144,6 +131,13 @@ public class EthernetConfigDialog extends AlertDialog implements
         Matcher matcher = pattern.matcher(netmask);
         return matcher.matches();
     }
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.ethernet_config, menu);
+		return true;
+	}
 
     public void handle_saveconf() {
         EthernetDevInfo info = new EthernetDevInfo();
@@ -187,7 +181,7 @@ public class EthernetConfigDialog extends AlertDialog implements
             	information += alertInfo.get(alertInfo.size() - 1);
 				information += ".\n";
             	
-                new AlertDialog.Builder(mContext).setTitle("Info:").setMessage(information).setPositiveButton("confirm", null).show(); 
+                new AlertDialog.Builder(this).setTitle("Info:").setMessage(information).setPositiveButton("confirm", null).show(); 
 
                 return;
 			}
@@ -212,7 +206,7 @@ public class EthernetConfigDialog extends AlertDialog implements
             info.setIpAddress(null);
             info.setDnsAddr(null);
             info.setNetMask(null);
-            info.setGateway(null);
+            info.setRouteAddr(null);
         }
 
         info.setProxyAddr(mEthEnabler.getManager().getSharedPreProxyAddress());
@@ -232,38 +226,15 @@ public class EthernetConfigDialog extends AlertDialog implements
             mEthEnabler.getManager().updateDevInfo(info);
             mEthEnabler.setEthEnabled();
 
+            finish();
         }
 
     }
 
-    public void onClick(DialogInterface dialog, int which) {
-        switch (which) {
-            case BUTTON_POSITIVE:
-                handle_saveconf();
-                break;
-            case BUTTON_NEGATIVE:
-                dialog.cancel();
-                break;
-            default:
-                Log.e(TAG,"Unknow button");
-        }
-    }
-
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-
-    }
-
-    public void onNothingSelected(AdapterView<?> parent) {
-
-    }
-
-    public void onClick(View v) {
-
-    }
     public void updateDevNameList(String[] DevList) {
         if (DevList != null) {
             ArrayAdapter<CharSequence> adapter = new ArrayAdapter<CharSequence>(
-                    getContext(), android.R.layout.simple_spinner_item, DevList);
+                    this, android.R.layout.simple_spinner_item, DevList);
             adapter.setDropDownViewResource(
                     android.R.layout.simple_spinner_dropdown_item);
             mDevList.setAdapter(adapter);
@@ -271,5 +242,23 @@ public class EthernetConfigDialog extends AlertDialog implements
 
     }
 
-}
+	@Override
+	public void onItemSelected(AdapterView<?> arg0, View arg1, int arg2,
+			long arg3) {
+		// TODO Auto-generated method stub
+		
+	}
 
+	@Override
+	public void onNothingSelected(AdapterView<?> arg0) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onClick(View arg0) {
+		// TODO Auto-generated method stub
+		handle_saveconf	();
+	}
+
+}

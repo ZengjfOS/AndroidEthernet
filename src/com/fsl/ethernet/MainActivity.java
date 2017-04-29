@@ -97,6 +97,7 @@ public class MainActivity extends Activity {
 
         // create ethernet manager and reset the interface
         mEthEnabler = new EthernetEnabler(this);
+        ((EthernetApp)getApplication()).setmEthEnabler(mEthEnabler);
 
         // add button listener
         addListenerOnBtnConfig();
@@ -124,9 +125,14 @@ public class MainActivity extends Activity {
         mBtnConfig.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+            	/*
                 mEthConfigDialog = new EthernetConfigDialog(MainActivity.this, mEthEnabler);
                 mEthEnabler.setConfigDialog(mEthConfigDialog);
                 mEthConfigDialog.show();
+                */
+            	Intent intent = new Intent();
+            	intent.setClass(MainActivity.this, EthernetConfigActivity.class);
+            	startActivity(intent);
             }
         });
     }
