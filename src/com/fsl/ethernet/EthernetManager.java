@@ -230,15 +230,27 @@ public class EthernetManager {
                 int prefixLength = NetworkUtils.netmaskIntToPrefixLength(netmask);
                 LinkAddress ipAddr = new LinkAddress(info.getIpAddress()+"/"+ Integer.toString(prefixLength));
                 InetAddress gwAddr = InetAddress.getByName(info.getGateway());
-                Log.e(TAG, "zengjf Gateway:" + gwAddr.getAddress()[0] + "." + gwAddr.getAddress()[1] + "." + gwAddr.getAddress()[2] + "." + gwAddr.getAddress()[3]);
+                Log.e(TAG, "zengjf Gateway: " + gwAddr.getAddress()[0] + "." + gwAddr.getAddress()[1] + "." + gwAddr.getAddress()[2] + "." + gwAddr.getAddress()[3]);
                 StaticIpConfiguration config = new StaticIpConfiguration();
                 config.ipAddress = ipAddr;
-                config.gateway = gwAddr;
+                config.gateway = gwAddr;		// this gateway setting can't work well
                 if (info.getDnsAddr() != null)
                     config.dnsServers.add(InetAddress.getByName(info.getDnsAddr()));
-                   ipcfg.staticIpConfiguration = config;
-                  ethernetService.setConfiguration(ipcfg);
-
+                ipcfg.staticIpConfiguration = config;
+                ethernetService.setConfiguration(ipcfg);
+                
+                // set gateway
+                if (info.getRouteAddr() != null) {
+                	mNMService.addRoute(0, 
+                			new RouteInfo(new LinkAddress(
+                					NetworkUtils.numericToInetAddress("0.0.0.0"), NetworkUtils.netmaskIntToPrefixLength(numericIPToInt(info.getNetMask()))), 
+                					NetworkUtils.numericToInetAddress(info.getGateway())));
+                	RouteInfo[] routeinfos = mNMService.getRoutes(info.getIfName());
+                	for (int i = 0; i < routeinfos.length; i++) {
+                	    Log.d(TAG,"Route info: " + routeinfos[i]);
+					}
+				}
+                
                 Log.d(TAG,"Static IP configuration succeeded");
             } catch (UnknownHostException e){
                 Log.e(TAG,"Static IP configuration failed: " + e);
@@ -256,6 +268,16 @@ public class EthernetManager {
             SystemProperties.set("net." + info.getIfName() + ".dns1",info.getDnsAddr());
             updateDevInfo(info);
         }
+    }
+
+    static public int numericIPToInt(String numericIP) {
+    	String [] netmasks = numericIP.split("\\.");
+    	int netmask = Integer.valueOf(netmasks[0]) << 24 | 
+    		Integer.valueOf(netmasks[1]) << 16 |
+    		Integer.valueOf(netmasks[2]) << 8 |
+    		Integer.valueOf(netmasks[3]);
+    	
+    	return netmask;
     }
 
     public EthernetDevInfo getDhcpInfo() {
