@@ -321,9 +321,8 @@ public class EthernetManager {
         	for (int i = 0; i < routeinfos.length; i++) {
         	    Log.d(TAG,"Route info: " + routeinfos[i]);
         	    byte[] route = routeinfos[i].getGateway().getAddress();
-        		// Log.d(TAG, "check route : " + ((route >> 24) & 0xff) + "." + ((route >> 16) & 0xff)+ "." + ((route >> 8) & 0xff) + "." + (route & 0xff));
-        		Log.d(TAG, "check route : " + (route[0]) + "." + (route[1]) + "." + (route[2])+ "." + (route[3]));
-        		String gateway = (route[0]) + "." + (route[1]) + "." + (route[2])+ "." + (route[3]);
+        		Log.d(TAG, "check route : " + (route[0] & 0xff) + "." + (route[1] & 0xff) + "." + (route[2] & 0xff)+ "." + (route[3] & 0xff));
+        		String gateway = (route[0] & 0xff) + "." + (route[1] & 0xff) + "." + (route[2] & 0xff)+ "." + (route[3] & 0xff);
         		if (!gateway.equals("0.0.0.0")) {
         			infotemp.setGateway(gateway);
         			break;
@@ -339,8 +338,9 @@ public class EthernetManager {
         int i = 0;
             for( InetAddress d : mConnMgr.getLinkProperties(ConnectivityManager.TYPE_ETHERNET).getDnsServers()) {
                 String temp = d.toString();
+                Log.e(TAG,"DNS String: " + temp);
                 if (temp != null)
-                    dns = temp.substring(1, temp.length()-1);
+                    dns = temp.substring(temp.indexOf("/") + 1);
                 break;
             }
         } catch (Exception err) {
