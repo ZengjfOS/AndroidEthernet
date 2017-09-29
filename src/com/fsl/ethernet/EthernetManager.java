@@ -176,6 +176,10 @@ public class EthernetManager {
 
         info.setIpAddress(getSharedPreIpAddress());
         info.setDnsAddr(getSharedPreDnsAddress());
+        /*
+        if(info.getDnsAddr() == null)
+        	info.setDnsAddr("8.8.8.8");
+        	*/
         info.setGateway(getSharedPreGateway());
         info.setNetMask(getSharedPreNetMask());
         info.setProxyAddr(getSharedPreProxyAddress());
@@ -230,21 +234,34 @@ public class EthernetManager {
                 int prefixLength = NetworkUtils.netmaskIntToPrefixLength(netmask);
                 LinkAddress ipAddr = new LinkAddress(info.getIpAddress()+"/"+ Integer.toString(prefixLength));
                 InetAddress gwAddr = InetAddress.getByName(info.getGateway());
-                Log.e(TAG, "zengjf Gateway: " + gwAddr.getAddress()[0] + "." + gwAddr.getAddress()[1] + "." + gwAddr.getAddress()[2] + "." + gwAddr.getAddress()[3]);
+                // Log.e(TAG, "zengjf Gateway: " + Integer.valueOf(gwAddr.getAddress()[0]) & 0xFF + "." + Integer.valueOf(gwAddr.getAddress()[1]) & 0xFF + "." + Integer.valueOf(gwAddr.getAddress()[2]) & 0xFF + "." + Integer.valueOf(gwAddr.getAddress()[3]) & 0xFF);
+                Log.e(TAG, "zengjf Gateway: " + (Integer.valueOf(gwAddr.getAddress()[0]) & 0xFF) + "." + (Integer.valueOf(gwAddr.getAddress()[1]) & 0xFF) + "." + (Integer.valueOf(gwAddr.getAddress()[2]) & 0xFF) + "." + (Integer.valueOf(gwAddr.getAddress()[3]) & 0xFF));
                 StaticIpConfiguration config = new StaticIpConfiguration();
                 config.ipAddress = ipAddr;
                 config.gateway = gwAddr;		// this gateway setting can't work well
                 if (info.getDnsAddr() != null)
                     config.dnsServers.add(InetAddress.getByName(info.getDnsAddr()));
+                else 
+                    config.dnsServers.add(InetAddress.getByName("0.0.0.0"));
+                
+                if (info.getGateway() != null) {
+					InetAddress gateway = null;
+					gateway = NetworkUtils.numericToInetAddress(info.getGateway());
+					config.gateway= gateway;
+                }
+                
                 ipcfg.staticIpConfiguration = config;
                 ethernetService.setConfiguration(ipcfg);
                 
                 // set gateway
                 if (info.getRouteAddr() != null) {
+                	/*
                 	mNMService.addRoute(0, 
                 			new RouteInfo(new LinkAddress(
                 					NetworkUtils.numericToInetAddress("0.0.0.0"), NetworkUtils.netmaskIntToPrefixLength(numericIPToInt(info.getNetMask()))), 
                 					NetworkUtils.numericToInetAddress(info.getGateway())));
+                					*/
+
                 	RouteInfo[] routeinfos = mNMService.getRoutes(info.getIfName());
                 	for (int i = 0; i < routeinfos.length; i++) {
                 	    Log.d(TAG,"Route info: " + routeinfos[i]);
@@ -264,8 +281,16 @@ public class EthernetManager {
                 Toast.makeText(mContext, "We got exception when set the static IP.",Toast.LENGTH_SHORT).show();
             }
             Log.d(TAG, "set ip manually " + info.toString());
-            SystemProperties.set("net.dns1", info.getDnsAddr());
-            SystemProperties.set("net." + info.getIfName() + ".dns1",info.getDnsAddr());
+            /*
+            if (info.getDnsAddr() != null) {
+				SystemProperties.set("net.dns1", info.getDnsAddr());
+				SystemProperties.set("net." + info.getIfName() + ".dns1", info.getDnsAddr());
+            } else {
+				SystemProperties.set("net.dns1", "0.0.0.0");
+				SystemProperties.set("net." + info.getIfName() + ".dns1", "0.0.0.0");
+            }
+            */
+
             updateDevInfo(info);
         }
     }
@@ -393,8 +418,13 @@ public class EthernetManager {
      */
     public synchronized void updateDevInfo(EthernetDevInfo info) {
         sharedPreferencesStore(info);
-        SystemProperties.set("net.dns1", info.getDnsAddr());
-        SystemProperties.set("net." + info.getIfName() + ".dns1",info.getDnsAddr());
+		if (info.getDnsAddr() != null) {
+			SystemProperties.set("net.dns1", info.getDnsAddr());
+			SystemProperties.set("net." + info.getIfName() + ".dns1", info.getDnsAddr());
+		} else {
+			SystemProperties.set("net.dns1", "0.0.0.0");
+			SystemProperties.set("net." + info.getIfName() + ".dns1", "0.0.0.0");
+		}
         SystemProperties.set("net." + info.getIfName() + ".dns2", "0.0.0.0");
     }
 
